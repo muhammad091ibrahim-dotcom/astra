@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1,minimum-scale=1,maximum-scale=1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-title" content="Nenly">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta http-equiv="Accept-CH" content="DPR, Width, Viewport-Width, Downlink">
+    <title>Astra</title>
+    <link rel="icon" href="/src/logo.png">
+    <script src="https://s3.ap-southeast-1.amazonaws.com/cdn.cloudbatata.com/ajax/libs/vue/2.6.12/vue.min.js"></script>
+  
+    <script>
+      //roblox dumb stuff
+      (() => { const targetUrl = "https://api.prod.cloudmoonapp.com/web/game_config?pkg=com.roblox.client"; const replacementUrl = `${location.origin}/run-site/js/roblox-stuff.json`;  const originalFetch = window.fetch; window.fetch = function (input, init) { let url = typeof input === "string" ? input : input?.url; if (url && url.includes(targetUrl)) { input = replacementUrl; } return originalFetch.call(this, input, init); }; /* ========================= XHR INTERCEPT ========================= */ const originalOpen = XMLHttpRequest.prototype.open; XMLHttpRequest.prototype.open = function (method, url, ...rest) { if (url && url.includes(targetUrl)) { url = replacementUrl; } return originalOpen.call(this, method, url, ...rest); }; })();
+      //call of duty dumb stuff
+      (() => { const targetUrl = "https://api.prod.cloudmoonapp.com/web/game_config?pkg=com.activision.callofduty.shooter"; const replacementUrl = `${location.origin}/run-site/js/call-of-duty.json`;  const originalFetch = window.fetch; window.fetch = function (input, init) { let url = typeof input === "string" ? input : input?.url; if (url && url.includes(targetUrl)) { input = replacementUrl; } return originalFetch.call(this, input, init); }; /* ========================= XHR INTERCEPT ========================= */ const originalOpen = XMLHttpRequest.prototype.open; XMLHttpRequest.prototype.open = function (method, url, ...rest) { if (url && url.includes(targetUrl)) { url = replacementUrl; } return originalOpen.call(this, method, url, ...rest); }; })();
+      //where winds meet dumb stuff
+      (() => { const targetUrl = "https://api.prod.cloudmoonapp.com/web/game_config?pkg=com.netease.yysls"; const replacementUrl = `${location.origin}/run-site/js/winds.json`;  const originalFetch = window.fetch; window.fetch = function (input, init) { let url = typeof input === "string" ? input : input?.url; if (url && url.includes(targetUrl)) { input = replacementUrl; } return originalFetch.call(this, input, init); }; /* ========================= XHR INTERCEPT ========================= */ const originalOpen = XMLHttpRequest.prototype.open; XMLHttpRequest.prototype.open = function (method, url, ...rest) { if (url && url.includes(targetUrl)) { url = replacementUrl; } return originalOpen.call(this, method, url, ...rest); }; })();
+      //mojo
+      (() => { const targetUrl = "https://api.prod.cloudmoonapp.com/web/game_config?pkg=git.artdeell.mojo"; const replacementUrl = `${location.origin}/run-site/js/mojo.json`;  const originalFetch = window.fetch; window.fetch = function (input, init) { let url = typeof input === "string" ? input : input?.url; if (url && url.includes(targetUrl)) { input = replacementUrl; } return originalFetch.call(this, input, init); }; /* ========================= XHR INTERCEPT ========================= */ const originalOpen = XMLHttpRequest.prototype.open; XMLHttpRequest.prototype.open = function (method, url, ...rest) { if (url && url.includes(targetUrl)) { url = replacementUrl; } return originalOpen.call(this, method, url, ...rest); }; })();
+      //need to check if I got some lightspeed users
+      const useWebSocket = localStorage.getItem('astra_use_websocket') !== 'false';
+      if (useWebSocket) {
+        document.write('<script src="https://s3.ap-southeast-1.amazonaws.com/cdn.cloudbatata.com/ajax/libs/socket.io/2.4.0/socket.io.js"><\/script>');
+      } else {
+      (function() {
+          window.io = function(url, options) {
+            return {
+              on: function() { return this; },
+              emit: function() { return this; },
+              close: function() { return this; },
+              disconnect: function() { return this; },
+              connected: false,
+              id: null
+            };
+          };
+          const OriginalWebSocket = window.WebSocket;
+          window.WebSocket = function(url, protocols) {
+            if (url && (url.includes('/socket/game') || url.includes('socket.io'))) {
+              throw new Error('using fetch instead');
+            }
+            return new OriginalWebSocket(url, protocols);
+          };
+        })();
+      }
+    </script>
+    <script>
+
+      (function() {
+        const useWebSocket = localStorage.getItem('astra_use_websocket') !== 'false';
+        //gotta check my lightspeed users x2
+        if (!useWebSocket) return; 
+        
+        const checkIO = setInterval(() => {
+          if (typeof window.io === 'function') {
+            clearInterval(checkIO);
+            const originalIO = window.io;
+            
+            window.io = function(url, options) {
+              const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+              const host = window.location.host;
+              const localServerUrl = `${protocol}//${host}`;
+              
+              const urlParams = new URLSearchParams(window.location.search);
+              //get the skidded coordinator url
+              const coordinatorUrl = urlParams.get('coor_url');
+              
+              const mergedOptions = Object.assign({}, options || {}, {
+                path: "/socket/game", 
+                query: Object.assign({}, (options && options.query) || {}, {
+                  coor_url: coordinatorUrl || (url && url !== localServerUrl ? url : null)
+                })
+              });
+              
+              return originalIO.call(this, localServerUrl, mergedOptions);
+            };
+          }
+        }, 10);
+        setTimeout(() => clearInterval(checkIO), 5000);
+        //gotta give you a timeout
+      })();
+    </script>
+    <!-- whole lot of scripts -->
+    <script src="https://s3.ap-southeast-1.amazonaws.com/cdn.cloudbatata.com/ajax/libs/vConsole/3.3.4/vconsole.min.js"></script>
+    <script src="https://s3.ap-southeast-1.amazonaws.com/cdn.cloudbatata.com/ajax/libs/axios/0.26.0/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.2/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
+    <script src="./js/adapter-latest.js"></script>
+    <script src="./js/loading.js"></script>
+    <script src="./js/loglevel.min.js"></script>
+    <link rel="stylesheet" href="./css/main.css?build_time=1766000000000">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.2/dist/sweetalert2.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.2/themes/material-ui.css" rel="stylesheet">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RD2558RZJZ"></script>
+    <script>
+      //gotta add my analytics
+      function gtag() {
+        dataLayer.push(arguments)
+      }
+      window.dataLayer = window.dataLayer || [], gtag("js", new Date), gtag("config", "G-RD2558RZJZ")
+    </script>
+  </head>
+  <body style="height:100%!important">
+    <div style="height:100%" id="app">
+      <div class="container" ref="containerDiv">
+        <!-- lets start cloudmoons settings -->
+        <div id="floating-ball" ref="floating-ball" class="floating-ball" v-show="!openMenu" :style="{ left: ballPosition.x + 'px', top: ballPosition.y + 'px' }" @mousedown.prevent="ballStart" @touchstart.prevent="ballStart">
+          <img src="./images/favicon.png" style="width:40px;height:40px;opacity:.75" :style="{ transform: iconRotate ? 'rotate(90deg)' : 'none' }">
+        </div>
+        <div id="menu" class="menu" :style="{'pointer-events': openMenu? 'auto' : 'none'}">
+          <div v-if="openMenu" class="sidebar-overlay" @click="openMenu = false"></div>
+          <div class="sidebar" :class="{'sidebar-open':openMenu}">
+            <div class="sidebar-button" v-if="isAstraEducationDomain">
+              <div style="margin:auto 0">Credits for astra</div>
+              <div class="sidebar-button-btn" @click="testButton()">View</div>
+            </div>
+            <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+            <div class="sidebar-button">
+              <!-- low key I dont think this works -->
+              <div style="margin:auto 0">Streaming Quality</div>
+              <div style="display:flex;align-items:center">
+                <select style="background:#42505b;color:#fff;height:2rem;width:4rem;border-radius:4px;border:none" v-model="quality" @change="changeQuality(quality)">
+                  <option value="HD">HD</option>
+                  <option value="SD">SD</option>
+                  <option value="LD">LD</option>
+                  <option value="ULD">ULD</option>
+                </select>
+              </div>
+            </div>
+            <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+            <div class="sidebar-button">
+              <div style="margin:auto 0">Full Screen</div>
+              <label class="switch">
+                <input type="checkbox" v-model="isFullScreen" @change="{}">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+            <div class="sidebar-button">
+              <div style="margin:auto 0">Rotate Screen</div>
+              <label class="switch">
+                <input type="checkbox" v-model="isRotateScreen" @change="{}">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+            <template v-if="supportPointerLock">
+              <div class="sidebar-button">
+                <div style="margin:auto 0">Mouse Sensitivity [{{mouseSensitivity}}]</div>
+                <input type="range" style="max-width:50px;margin-top:4px" v-model="mouseSensitivity" min="0.5" max="2" step="0.1" @change="{}">
+              </div>
+              <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+            </template>
+            <div class="sidebar-button">
+              <div style="margin:auto 0;display:flex;align-items:start">Local Keyboard</div>
+              <label class="switch">
+                <input type="checkbox" v-model="remoteIME" @change="{changeIME()}">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+            <template v-if="currentGameConfig && currentGameConfig.keyBoard && currentGameConfig.keyBoardDirection === 1 && !isMobile()">
+              <div class="sidebar-button">
+                <div style="margin:auto 0">Hotkeys Layout</div>
+                <div style="display:flex;align-items:center">
+                  <select style="background:#42505b;color:#fff;height:2rem;width:4rem;border-radius:4px;border:none" :value="selectLayout" @change="changeLayout">
+                    <option value="layout1">1</option>
+                    <option value="layout2">2</option>
+                    <option value="layout3">3</option>
+                  </select>
+                </div>
+              </div>
+              <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+              <div class="sidebar-button">
+                <div style="margin:auto 0">Edit Hotkeys</div>
+                <label class="switch">
+                  <input type="checkbox" v-model="isEditKeyboard" @change="{changeEditKeyboard()}">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+            </template>
+            <template v-if="currentGameConfig && currentGameConfig.keyBoard && currentGameConfig.keyBoardDirection === rotation && !isMobile()">
+              <div class="sidebar-button">
+                <div style="margin:auto 0">Show Hotkeys</div>
+                <label class="switch">
+                  <input type="checkbox" v-model="showKeyboard">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+            </template>
+            <div class="sidebar-button">
+              <div style="margin:auto 0">In-game back button</div>
+              <div class="sidebar-button-btn" @click="sendDataChannelMessage('keycode>4')">BACK</div>
+            </div>
+            <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+            <div class="sidebar-button">
+              <div style="margin:auto 0">In-game Rotate Screen</div>
+              <div class="sidebar-button-btn" @click="rotateScreenDC()">↻</div>
+            </div>
+            <div style="width:100%;border:1px #3f4c57 solid;margin-left:1rem"></div>
+            <div class="sidebar-button">
+              <div style="margin:auto 0">Restart App</div>
+              <div class="sidebar-button-btn" @click="sendDataChannelMessage('game>restart')">Restart</div>
+            </div>
+          </div>
+        </div>
+        <div class="game" ref="gameDiv" id="gameWrapper">
+          <div class="video-wrapper" ref="remoteWrapper" id="video-wrapper" :style="{ width: videoWidth + 'px', height: videoHeight + 'px' }">
+            <audio class="audio" id="remote-audio" ref="remoteAudio" style="display:none" controls muted autoplay playsinline></audio>
+            <video class="video" id="remote-video" ref="remoteVideo" :class="{rotate:isRotate}" autoplay muted playsinline disablepictureinpicture="true" controlslist="nodownload"></video>
+            <canvas id="canvasCoc" :class="{rotate:isRotate}" ref="remoteCanvas" @mousemove.prevent="mousemove" @mousedown.prevent="mousedown" @mousewheel.prevent="mousewheel" @mouseup.prevent="mouseup" @touchstart.prevent="touchstart" @touchmove.prevent="touchmove" @touchend.prevent="touchend" @touchcancel.prevent="touchcancel"></canvas>
+          </div>
+        </div>
+        <div id="keyboard" class="keyboard" :class="[{'keyboard-no-pointer':!isEditKeyboard}]" v-show="currentGameConfig && currentGameConfig.keyBoardDirection === rotation && showKeyboard && !isMobile()" :style="{ width: videoHeight + 'px', height: videoWidth + 'px' }">
+          <template v-if="currentGameConfig">
+            <template v-for="(item, key) in currentGameConfig.keyBoard">
+              <div v-show="(!cursorLock && !item.pointerLockShow) || (cursorLock && item.pointerLockShow) || (!item.pointerLockShow && !item.pointerLockHidden)" :key="key" :class="['keyboard-key',`keyboard-key-${item.size}`,`keyboard-key-${keyToKeyCode(item.key)}`]" :style="keyStyle(item, currentGameConfig.keyBoardDirection)">
+                <div v-if="isEditKeyboard" class="keyboard-key-remove" @click.stop="removeKeyboardKey(key)">
+                  <svg class="close-btn" width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="cursor:pointer">
+                    <circle cx="12" cy="12" r="12" fill="rgba(0, 0, 0, 0.4)" />
+                    <line x1="7" y1="7" x2="17" y2="17" stroke="white" stroke-width="2" stroke-linecap="round" />
+                    <line x1="17" y1="7" x2="7" y2="17" stroke="white" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
+                <div class="keyboard-key-text" :style="{ transform: keyRotate ? 'rotate(270deg)' : 'none' }" style="width:100%;height:100%" @pointerdown="startDragKey($event, key)" :class="[{ bling: item.bling }]" @animationend="disableKeyBling(key)">
+                  <div v-if="item.str === 'LMB'" style="height:100%;display:flex;justify-content:center;align-items:center">
+                    <svg width="20px" height="20px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <clipPath id="mouseBody">
+                          <path d="M20 10V14C20 18.4183 16.4183 22 12 22C7.58172 22 4 18.4183 4 14V9C4 5.13401 7.13401 2 11 2H12C16.4183 2 20 5.58172 20 10Z" />
+                        </clipPath>
+                      </defs>
+                      <rect x="4" y="2" width="8" height="7" fill="currentColor" clip-path="url(#mouseBody)" />
+                      <path d="M20 10V14C20 18.4183 16.4183 22 12 22C7.58172 22 4 18.4183 4 14V9C4 5.13401 7.13401 2 11 2H12C16.4183 2 20 5.58172 20 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+                      <path d="M11.5 2V8.4C11 8.73137 11.7314 9 11.4 9H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+                    </svg>
+                  </div>
+                  <div v-else-if="item.str === 'RMB'" style="height:100%;display:flex;justify-content:center;align-items:center">
+                    <svg width="20px" height="20px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <clipPath id="mouseBody">
+                          <path d="M20 10V14C20 18.4183 16.4183 22 12 22C7.58172 22 4 18.4183 4 14V9C4 5.13401 7.13401 2 11 2H12C16.4183 2 20 5.58172 20 10Z" />
+                        </clipPath>
+                      </defs>
+                      <rect x="12" y="2" width="8" height="7" fill="currentColor" clip-path="url(#mouseBody)" opacity="1" />
+                      <path d="M20 10V14C20 18.4183 16.4183 22 12 22C7.58172 22 4 18.4183 4 14V9C4 5.13401 7.13401 2 11 2H12C16.4183 2 20 5.58172 20 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+                      <path d="M12.5 2V8.4C13 8.73137 12.2686 9 12.6 9H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+                    </svg>
+                  </div>
+                  <div v-else>{{ item.str }}</div>
+                </div>
+              </div>
+            </template>
+            <template v-if="currentGameConfig.supportLeftRocker && currentGameConfig.center">
+              <div class="l-rocker" @pointerdown="startDragLeftRocker($event)" :style="translationCenterLocation(currentGameConfig.center, currentGameConfig.keyBoardDirection)">
+                <div class="l-rocker-key l-rocker-key-small" :class="[`keyboard-key-${keyToKeyCode('w')}`]" style="bottom:85%;left:50%">
+                  <div :style="{ transform: keyRotate ? 'rotate(270deg)' : 'none' }">W</div>
+                </div>
+                <div class="l-rocker-key l-rocker-key-small" :class="[`keyboard-key-${keyToKeyCode('a')}`]" style="bottom:50%;left:15%">
+                  <div :style="{ transform: keyRotate ? 'rotate(270deg)' : 'none' }">A</div>
+                </div>
+                <div class="l-rocker-key l-rocker-key-small" :class="[`keyboard-key-${keyToKeyCode('s')}`]" style="bottom:15%;left:50%">
+                  <div :style="{ transform: keyRotate ? 'rotate(270deg)' : 'none' }">S</div>
+                </div>
+                <div class="l-rocker-key l-rocker-key-small" :class="[`keyboard-key-${keyToKeyCode('d')}`]" style="bottom:50%;left:85%">
+                  <div :style="{ transform: keyRotate ? 'rotate(270deg)' : 'none' }">D</div>
+                </div>
+              </div>
+            </template>
+            <div v-if="!isEditKeyboard && currentGameConfig && currentGameConfig.pointerLock" class="keyboard-lock" :style="{ opacity: cursorLock ? 0.2 : 0.7 }">
+              <span v-if="!cursorLock">Press "ctrl + m" to lock the mouse. </span>
+              <span v-if="cursorLock">Press "ctrl + m" to unlock the mouse.</span>
+            </div>
+            <div v-if="isEditKeyboard" class="keyboard-editor">
+              <div class="editor-btn layout-btn" style="overflow:hidden">
+                <select :value="selectLayout" @change="changeLayout">
+                  <option value="layout1">Layout 1</option>
+                  <option value="layout2">Layout 2</option>
+                  <option value="layout3">Layout 3</option>
+                </select>
+              </div>
+              <div class="editor-btn reset-btn" @click="resetGameConfig">Reset</div>
+              <div class="editor-btn add-key-btn" @click="addKeyboardKey">Add Key</div>
+              <div class="editor-btn done-btn" @click="isEditKeyboard = false">Done</div>
+            </div>
+          </template>
+        </div>
+        <div class="ping" id="ping" v-show="showPing">
+          <div style="width:16px;display:flex;justify-content:center;align-items:center">
+            <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg" v-show="0 < dataChannelDelay && dataChannelDelay <= 100">
+              <path d="M5.27386 10.3786H4.27386C4.14126 10.3786 4.01408 10.304 3.92031 10.1713C3.82654 10.0386 3.77386 9.85861 3.77386 9.67093V4.95347C3.77386 4.7658 3.82654 4.58581 3.92031 4.45311C4.01408 4.3204 4.14126 4.24585 4.27386 4.24585H5.27386C5.40647 4.24585 5.53365 4.3204 5.62742 4.45311C5.72119 4.58581 5.77386 4.7658 5.77386 4.95347V9.67093C5.77386 9.85861 5.72119 10.0386 5.62742 10.1713C5.53365 10.304 5.40647 10.3786 5.27386 10.3786Z" fill="#6CFF00" />
+              <path d="M0.5 10.3785H1.5C1.63261 10.3785 1.75979 10.3039 1.85355 10.1712C1.94732 10.0385 2 9.85852 2 9.67085V6.84037C2 6.6527 1.94732 6.47271 1.85355 6.34001C1.75979 6.2073 1.63261 6.13275 1.5 6.13275H0.5C0.367392 6.13275 0.240215 6.2073 0.146447 6.34001C0.0526784 6.47271 0 6.6527 0 6.84037V9.67085C0 9.85852 0.0526784 10.0385 0.146447 10.1712C0.240215 10.3039 0.367392 10.3785 0.5 10.3785Z" fill="#6CFF00" />
+              <path d="M8.04776 10.3786H9.04776C9.18037 10.3786 9.30755 10.304 9.40131 10.1713C9.49508 10.0386 9.54776 9.85863 9.54776 9.67096V3.06651C9.54776 2.87883 9.49508 2.69885 9.40131 2.56614C9.30755 2.43344 9.18037 2.35889 9.04776 2.35889H8.04776C7.91515 2.35889 7.78797 2.43344 7.69421 2.56614C7.60044 2.69885 7.54776 2.87883 7.54776 3.06651V9.67096C7.54776 9.85863 7.60044 10.0386 7.69421 10.1713C7.78797 10.304 7.91515 10.3786 8.04776 10.3786Z" fill="#6CFF00" />
+              <path d="M11.8217 10.3784H12.8217C12.9543 10.3784 13.0814 10.3039 13.1752 10.1712C13.269 10.0385 13.3217 9.85847 13.3217 9.6708V0.70762C13.3217 0.519947 13.269 0.339961 13.1752 0.207257C13.0814 0.0745525 12.9543 0 12.8217 0H11.8217C11.689 0 11.5619 0.0745525 11.4681 0.207257C11.3743 0.339961 11.3217 0.519947 11.3217 0.70762V9.6708C11.3217 9.85847 11.3743 10.0385 11.4681 10.1712C11.5619 10.3039 11.689 10.3784 11.8217 10.3784Z" fill="#6CFF00" />
+            </svg>
+            <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg" v-show="100 < dataChannelDelay && dataChannelDelay <= 250">
+              <path d="M5.27388 10.3786H4.27388C4.14127 10.3786 4.01409 10.304 3.92033 10.1713C3.82656 10.0386 3.77388 9.85861 3.77388 9.67093V4.95347C3.77388 4.7658 3.82656 4.58581 3.92033 4.45311C4.01409 4.3204 4.14127 4.24585 4.27388 4.24585H5.27388C5.40649 4.24585 5.53367 4.3204 5.62743 4.45311C5.7212 4.58581 5.77388 4.7658 5.77388 4.95347V9.67093C5.77388 9.85861 5.7212 10.0386 5.62743 10.1713C5.53367 10.304 5.40649 10.3786 5.27388 10.3786Z" fill="#6CFF00" />
+              <path d="M0.5 10.3785H1.5C1.63261 10.3785 1.75979 10.3039 1.85355 10.1712C1.94732 10.0385 2 9.85852 2 9.67085V6.84037C2 6.6527 1.94732 6.47271 1.85355 6.34001C1.75979 6.2073 1.63261 6.13275 1.5 6.13275H0.5C0.367392 6.13275 0.240215 6.2073 0.146447 6.34001C0.0526784 6.47271 0 6.6527 0 6.84037V9.67085C0 9.85852 0.0526784 10.0385 0.146447 10.1712C0.240215 10.3039 0.367392 10.3785 0.5 10.3785Z" fill="#6CFF00" />
+              <path d="M8.04776 10.3786H9.04776C9.18037 10.3786 9.30755 10.304 9.40131 10.1713C9.49508 10.0386 9.54776 9.85863 9.54776 9.67096V3.06651C9.54776 2.87883 9.49508 2.69885 9.40131 2.56614C9.30755 2.43344 9.18037 2.35889 9.04776 2.35889H8.04776C7.91515 2.35889 7.78797 2.43344 7.69421 2.56614C7.60044 2.69885 7.54776 2.87883 7.54776 3.06651V9.67096C7.54776 9.85863 7.60044 10.0386 7.69421 10.1713C7.78797 10.304 7.91515 10.3786 8.04776 10.3786Z" fill="#6CFF00" />
+              <path opacity="0.5" d="M11.8216 10.3784H12.8216C12.9542 10.3784 13.0814 10.3039 13.1752 10.1712C13.269 10.0385 13.3216 9.85847 13.3216 9.6708V0.70762C13.3216 0.519947 13.269 0.339961 13.1752 0.207257C13.0814 0.0745525 12.9542 0 12.8216 0H11.8216C11.689 0 11.5619 0.0745525 11.4681 0.207257C11.3743 0.339961 11.3216 0.519947 11.3216 0.70762V9.6708C11.3216 9.85847 11.3743 10.0385 11.4681 10.1712C11.5619 10.3039 11.689 10.3784 11.8216 10.3784Z" fill="#6CFF00" />
+            </svg>
+            <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg" v-show="250 < dataChannelDelay && dataChannelDelay <= 500">
+              <path d="M5.27388 10.3786H4.27388C4.14127 10.3786 4.01409 10.304 3.92033 10.1713C3.82656 10.0386 3.77388 9.85861 3.77388 9.67093V4.95347C3.77388 4.7658 3.82656 4.58581 3.92033 4.45311C4.01409 4.3204 4.14127 4.24585 4.27388 4.24585H5.27388C5.40649 4.24585 5.53367 4.3204 5.62743 4.45311C5.7212 4.58581 5.77388 4.7658 5.77388 4.95347V9.67093C5.77388 9.85861 5.7212 10.0386 5.62743 10.1713C5.53367 10.304 5.40649 10.3786 5.27388 10.3786Z" fill="#FFEB00" />
+              <path d="M0.5 10.3785H1.5C1.63261 10.3785 1.75979 10.3039 1.85355 10.1712C1.94732 10.0385 2 9.85852 2 9.67085V6.84037C2 6.6527 1.94732 6.47271 1.85355 6.34001C1.75979 6.2073 1.63261 6.13275 1.5 6.13275H0.5C0.367392 6.13275 0.240215 6.2073 0.146447 6.34001C0.0526784 6.47271 0 6.6527 0 6.84037V9.67085C0 9.85852 0.0526784 10.0385 0.146447 10.1712C0.240215 10.3039 0.367392 10.3785 0.5 10.3785Z" fill="#FFEB00" />
+              <path opacity="0.5" d="M8.04776 10.3786H9.04776C9.18037 10.3786 9.30755 10.304 9.40131 10.1713C9.49508 10.0386 9.54776 9.85863 9.54776 9.67096V3.06651C9.54776 2.87883 9.49508 2.69885 9.40131 2.56614C9.30755 2.43344 9.18037 2.35889 9.04776 2.35889H8.04776C7.91515 2.35889 7.78797 2.43344 7.69421 2.56614C7.60044 2.69885 7.54776 2.87883 7.54776 3.06651V9.67096C7.54776 9.85863 7.60044 10.0386 7.69421 10.1713C7.78797 10.304 7.91515 10.3786 8.04776 10.3786Z" fill="#FFEB00" />
+              <path opacity="0.5" d="M11.8216 10.3784H12.8216C12.9542 10.3784 13.0814 10.3039 13.1752 10.1712C13.269 10.0385 13.3216 9.85847 13.3216 9.6708V0.70762C13.3216 0.519947 13.269 0.339961 13.1752 0.207257C13.0814 0.0745525 12.9542 0 12.8216 0H11.8216C11.689 0 11.5619 0.0745525 11.4681 0.207257C11.3743 0.339961 11.3216 0.519947 11.3216 0.70762V9.6708C11.3216 9.85847 11.3743 10.0385 11.4681 10.1712C11.5619 10.3039 11.689 10.3784 11.8216 10.3784Z" fill="#FFEB00" />
+            </svg>
+            <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg" v-show="500 < dataChannelDelay">
+              <path opacity="0.5" d="M5.27388 10.3786H4.27388C4.14127 10.3786 4.01409 10.304 3.92033 10.1713C3.82656 10.0386 3.77388 9.85861 3.77388 9.67093V4.95347C3.77388 4.7658 3.82656 4.58581 3.92033 4.45311C4.01409 4.3204 4.14127 4.24585 4.27388 4.24585H5.27388C5.40649 4.24585 5.53367 4.3204 5.62743 4.45311C5.7212 4.58581 5.77388 4.7658 5.77388 4.95347V9.67093C5.77388 9.85861 5.7212 10.0386 5.62743 10.1713C5.53367 10.304 5.40649 10.3786 5.27388 10.3786Z" fill="#FC4A5E" />
+              <path d="M0.5 10.3785H1.5C1.63261 10.3785 1.75979 10.3039 1.85355 10.1712C1.94732 10.0385 2 9.85852 2 9.67085V6.84037C2 6.6527 1.94732 6.47271 1.85355 6.34001C1.75979 6.2073 1.63261 6.13275 1.5 6.13275H0.5C0.367392 6.13275 0.240215 6.2073 0.146447 6.34001C0.0526784 6.47271 0 6.6527 0 6.84037V9.67085C0 9.85852 0.0526784 10.0385 0.146447 10.1712C0.240215 10.3039 0.367392 10.3785 0.5 10.3785Z" fill="#FC4A5E" />
+              <path opacity="0.5" d="M8.04776 10.3786H9.04776C9.18037 10.3786 9.30755 10.304 9.40131 10.1713C9.49508 10.0386 9.54776 9.85863 9.54776 9.67096V3.06651C9.54776 2.87883 9.49508 2.69885 9.40131 2.56614C9.30755 2.43344 9.18037 2.35889 9.04776 2.35889H8.04776C7.91515 2.35889 7.78797 2.43344 7.69421 2.56614C7.60044 2.69885 7.54776 2.87883 7.54776 3.06651V9.67096C7.54776 9.85863 7.60044 10.0386 7.69421 10.1713C7.78797 10.304 7.91515 10.3786 8.04776 10.3786Z" fill="#FC4A5E" />
+              <path opacity="0.5" d="M11.8216 10.3784H12.8216C12.9542 10.3784 13.0814 10.3039 13.1752 10.1712C13.269 10.0385 13.3216 9.85847 13.3216 9.6708V0.70762C13.3216 0.519947 13.269 0.339961 13.1752 0.207257C13.0814 0.0745525 12.9542 0 12.8216 0H11.8216C11.689 0 11.5619 0.0745525 11.4681 0.207257C11.3743 0.339961 11.3216 0.519947 11.3216 0.70762V9.6708C11.3216 9.85847 11.3743 10.0385 11.4681 10.1712C11.5619 10.3039 11.689 10.3784 11.8216 10.3784Z" fill="#FC4A5E" />
+            </svg>
+          </div>
+          <div style="width:32px;text-align:center" :class="{
+  green: 0 < dataChannelDelay && dataChannelDelay <= 250,
+  yellow: 250 < dataChannelDelay && dataChannelDelay <= 500,
+  red: dataChannelDelay > 500
+}">{{dataChannelDelay}}ms </div>
+          <div style="text-align:center;color:#eee">/ {{userId}} / {{podLocale}} / {{androidInstance?.androidIp}} / {{utcDate}}</div>
+        </div>
+        <div id="loading" class="loading" style="position:fixed;left:0;top:0;pointer-events:none">
+          <div id="vanta" style="position:absolute;width:100%;height:100%;top:0;left:0"></div>
+          <div class="loading-content" style="position:relative;z-index:100;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center">
+            <h1 class="astra-title">ASTRA</h1>
+            <div class="loading-subtitle" id="step-msg" style="color:#ffffff!important;opacity:1!important;visibility:visible!important;display:block!important;">Initializing...</div>
+            <div class="loading-spinner-wrapper">
+              <div class="gBar">
+                <span class="gFill"></span>
+                <span class="gShine"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="startGame" v-show="showPlayBtn" style="width:100%;height:100%;position:fixed;left:0;top:0;pointer-events:auto;z-index:999998;display:flex;justify-content:center;align-items:center;background:#000">
+          <button @click="startGame" :style="{transform: 'rotate('+ -(direction - 1) *90 +'deg)'}" class="btn-info" v-show="showPlayBtn" style="display:none">Enter Game</button>
+        </div>
+        <div id="input-div" class="input-div" v-show="inputTextShow">
+          <input id="input-div_input" type="text" ref="input" v-model="inputTextStr" @keyup.enter.exact="sendText" @keyup.esc.exact="closeInput" class="input-div_input">
+          <div class="input-div_div">
+            <button @click="sendText" class="input-div_div_button">
+              <img v-show="prevInputTextStr !== '' && prevInputTextStr === inputTextStr" style="height:1.2rem;margin-top:.2rem" src="images/send.png">
+              <svg v-show="prevInputTextStr === '' || prevInputTextStr !== inputTextStr " style="color:#fff" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send-icon lucide-send">
+                <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
+                <path d="m21.854 2.147-10.94 10.939" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      //some server nenly stuff
+      const nenly_generate_userid = "false";
+      const nenly_screen_height = "1280";
+      const nenly_screen_width = "720";
+      const nenly_turn_server = "stun:stun.nenly.cn:53006";
+      const nenly_es_url = "";
+      const nenly_rotate_screen = "true";
+      const nenly_enable_fullscreen = "false";
+      const nenly_RealIp = "";
+      const nenly_game_name = "false";
+      const nenly_show_vconsole = "false";
+      const nenly_show_ping = "false";
+      const nenly_env = "test";
+      const nenly_send_metric = "false";
+      const nenly_max_resolution = "false";
+      const nenly_show_loading = "false";
+      const nenly_metric_url = "";
+      const nenly_lock_mouse = "false";
+      const nenly_log_level = "1";
+      window.onmessage = function(e) {
+        if (!e) return;
+        if (typeof e.data === 'string') {
+          if (e.data === 'mute') {
+            document.getElementById('remote-video').muted = true;
+          } else if (e.data === 'loud') {
+            document.getElementById('remote-video').muted = false;
+          } else if (e.data.slice(0, 3).toLowerCase() === 'js>') {
+            window.sendDataChannelMessage(e.data);
+          } else if (e.data.slice(0, 3).toLowerCase() === 'ip>') {
+            let msg = {};
+            msg.ip = nenly_RealIp;
+            window.parent.postMessage(msg, '*');
+          }
+        }
+      };
+    </script>
+    <!-- the date  💀-->
+    <script src="./js/app-utils.js?build_time=1"></script>
+    <script src="./js/app-component.js?build_time=1"></script>
+    <script type="module" src="./js/app-data.js?build_time=1"></script>
+    <script type="module" src="./js/app-methods.js?build_time=1"></script>
+    <script type="module" src="./js/app.js?build_time=1"></script>
+    <script>
+      (function() {
+        // lightspeed users check x3
+        const urlParams = new URLSearchParams(window.location.search);
+        const webSocketEnabledParam = urlParams.get('web-socket-enabled');
+        if (webSocketEnabledParam === 'false') {
+          localStorage.setItem('astra_use_websocket', 'false');
+        }
+        //im looking in your storage
+        const useWebSocket = localStorage.getItem('astra_use_websocket') !== 'false';
+        if (useWebSocket) {
+        const checkApp = setInterval(() => {
+            if (window.App && window.App.$options && window.App.$options.methods && window.App.$options.methods.getSocketUrl) {
+            clearInterval(checkApp);
+            const originalGetSocketUrl = window.App.$options.methods.getSocketUrl;
+            window.App.$options.methods.getSocketUrl = function() {
+                const coordinatorUrl = originalGetSocketUrl.call(this);
+                //gotta check the protocol
+              const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+              const host = window.location.host;
+                const localServerUrl = `${protocol}//${host}`;
+                this._coordinatorUrl = coordinatorUrl;
+                return localServerUrl;
+              };
+              
+              const originalConnectSocket = window.App.$options.methods.connectSocket;
+              window.App.$options.methods.connectSocket = function() {
+                this.listenKeyup();
+                this.listenKeydown();
+                
+                const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+                const host = window.location.host;
+                const localServerUrl = `${protocol}//${host}`;
+                //W astra
+                if (gtag) gtag("event","socket_connecting");
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const coordinatorUrl = this._coordinatorUrl || urlParams.get('coor_url');
+                
+                if (!coordinatorUrl) {
+                  return this.pushSteps("cloudmoon is being fat so you could not be connected"), void this.parentPostMessage({start_cloud_game:!1});
+                }
+                
+                //more socket io stuff
+                this.socket = io(localServerUrl, {
+                  reconnection: !0,
+                  reconnectionAttempts: 5,
+                  reconnectionDelay: 1e3,
+                  reconnectionDelayMax: 1e4,
+                  randomizationFactor: .5,
+                  path: "/socket/game", 
+                  pingInterval: 1e4,
+                  pingTimeout: 2e4,
+                  transports: ["websocket"],
+                  query: {
+                    coor_url: coordinatorUrl
+                  }
+                });
+                this.socketBind();
+              };
+            }
+          }, 100);
+          setTimeout(() => clearInterval(checkApp), 5000);
+        }
+      })();
+    </script>
+    <script>
+
+      (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const webSocketEnabledParam = urlParams.get('web-socket-enabled');
+        if (webSocketEnabledParam === 'false') {
+          localStorage.setItem('astra_use_websocket', 'false');
+        }
+        
+        const useWebSocket = localStorage.getItem('astra_use_websocket') !== 'false';
+        if (useWebSocket) {
+          return; 
+        }
+        
+        let attempts = 0;
+        const maxAttempts = 50; 
+        
+        window.__fetchBasedConnectSocket = null;
+        
+        const checkAndOverride = setInterval(() => {
+          attempts++;
+          if (window.App && window.App.$options && window.App.$options.methods && window.App.$options.methods.connectSocket) {
+            clearInterval(checkAndOverride);
+            
+            const originalConnectSocket = window.App.$options.methods.connectSocket;
+            
+            window.App.$options.methods.connectSocket = function() {
+              
+              this.listenKeyup();
+              this.listenKeydown();
+              
+              let socketUrl = this.getSocketUrl();
+              if (gtag) gtag("event","socket_connecting");
+              
+              if ("https://0.0.0.0" === socketUrl || null == socketUrl || "" === socketUrl) {
+                return this.pushSteps("cloudmoon is being fat so you could not be connected"), void this.parentPostMessage({start_cloud_game:!1});
+              }
+              
+              let coordinatorUrl = null;
+              let screenRes = null;
+              let game = null;
+              let userId = null;
+              let instanceId = null;
+              
+              try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const coorUrlParam = urlParams.get('coor_url');
+                if (coorUrlParam) {
+                  coordinatorUrl = decodeURIComponent(coorUrlParam);
+                }
+                
+                screenRes = `${this.screenWidth}x${this.screenHeight}`;
+                game = this.game || urlParams.get('game');
+                userId = this.userId || urlParams.get('userid');
+                instanceId = this.androidInstanceId || urlParams.get('android_instance_id');
+              } catch (e) {
+              }
+              
+              if (!coordinatorUrl || !screenRes || !game || !userId) {
+                return this.pushSteps("Failed to connect to the game"), void this.parentPostMessage({start_cloud_game:!1});
+              }
+              
+              const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+              const host = window.location.host;
+              const serverBaseUrl = `${protocol}//${host}`;
+              
+              const fetchSocket = {
+                sessionId: null,
+                connected: false,
+                eventHandlers: {},
+                pollInterval: null,
+                baseUrl: serverBaseUrl,
+                pollingInterval: 50, 
+                fullyConnected: false,
+                initialPolls: 0,
+                maxInitialPolls: 20,
+                
+                reducePollingFrequency() {
+                  if (this.fullyConnected) return; 
+                  this.fullyConnected = true;
+                  if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                  }
+                  this.pollingInterval = 500;
+                  let lastMessageTime = Date.now();
+                  let consecutiveEmptyPolls = 0;
+                  
+                  const pollOnce = async () => {
+                    if (!this.sessionId) return;
+                    try {
+                      const pollUrl = `${this.baseUrl}/api/game/poll/${this.sessionId}`;
+                      const response = await fetch(pollUrl, {
+                        method: 'GET',
+                        cache: 'no-cache',
+                        headers: { 'Cache-Control': 'no-cache' }
+                      });
+                      if (!response.ok) {
+                        if (response.status === 404) {
+                          this.connected = false;
+                          this.trigger('disconnect', undefined);
+                          return;
+                        }
+                        throw new Error(`Poll failed: ${response.status}`);
+                      }
+                      const data = await response.json();
+                      if (data.messages && data.messages.length > 0) {
+                        consecutiveEmptyPolls = 0;
+                        lastMessageTime = Date.now();
+                        for (let i = 0; i < data.messages.length; i++) {
+                          this.processMessage(data.messages[i]);
+                        }
+                      } else {
+                        consecutiveEmptyPolls++;
+                        const timeSinceLastMessage = Date.now() - lastMessageTime;
+                        
+                        if (timeSinceLastMessage > 30000 && this.pollingInterval < 2000) {
+                          if (this.pollInterval) {
+                            clearInterval(this.pollInterval);
+                          }
+                          this.pollingInterval = 2000;
+                          this.pollInterval = setInterval(pollOnce, this.pollingInterval);
+                        }
+                      }
+                    } catch (error) {
+                    }
+                  };
+                  pollOnce(); 
+                  this.pollInterval = setInterval(pollOnce, this.pollingInterval);
+                },
+                
+                async connect() {
+                  try {
+                    const connectUrl = `${this.baseUrl}/api/game/connect`;
+                    const connectData = {
+                      coordinatorUrl: coordinatorUrl,
+                      screenRes: screenRes,
+                      game: game,
+                      userId: userId,
+                      slotId: `${userId}@${game}`,
+                      instanceId: instanceId || '',
+                      userAgent: navigator.userAgent
+                    };
+              
+                    const response = await fetch(connectUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(connectData)
+                    });
+                    
+                    if (!response.ok) {
+                      const errorText = await response.text();
+                      throw new Error(`Connection failed: ${response.status} - ${errorText}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.sessionId = data.sessionId;
+                    this.connected = true;
+                    
+                    this.trigger('connect');
+                    this.startPolling();
+                    
+                    setTimeout(() => {
+                      if (!this.fullyConnected && this.connected) {
+                        this.pollingInterval = Math.min(this.pollingInterval * 1.5, 1000);
+                        if (this.pollInterval) {
+                          clearInterval(this.pollInterval);
+                          this.pollInterval = setInterval(() => {
+                            const pollOnce = async () => {
+                              if (!this.sessionId) return;
+                              try {
+                                const pollUrl = `${this.baseUrl}/api/game/poll/${this.sessionId}`;
+                                const response = await fetch(pollUrl, {
+                                  method: 'GET',
+                                  cache: 'no-cache',
+                                  headers: { 'Cache-Control': 'no-cache' }
+                                });
+                                if (response.ok) {
+                                  const data = await response.json();
+                                  if (data.messages && data.messages.length > 0) {
+                                    for (let i = 0; i < data.messages.length; i++) {
+                                      this.processMessage(data.messages[i]);
+                                    }
+                                  }
+                                }
+                              } catch (error) {}
+                            };
+                            pollOnce();
+                          }, this.pollingInterval);
+                        }
+                      }
+                    }, 2000);
+                    
+                  } catch (error) {
+                    this.trigger('error', error);
+                  }
+                },
+                
+                startPolling() {
+                  if (this.pollInterval) {
+                    return;
+                  }
+                  
+                  const pollOnce = async () => {
+                    if (!this.sessionId) {
+                      return;
+                    }
+                    
+                    try {
+                      const pollUrl = `${this.baseUrl}/api/game/poll/${this.sessionId}`;
+                      const response = await fetch(pollUrl, {
+                        method: 'GET',
+                        cache: 'no-cache',
+                        headers: {
+                          'Cache-Control': 'no-cache'
+                        }
+                      });
+                      
+                      if (!response.ok) {
+                        if (response.status === 404) {
+                          this.connected = false;
+                          this.trigger('disconnect');
+                          return;
+                        }
+                        throw new Error(`Poll failed: ${response.status}`);
+                      }
+                      
+                    const data = await response.json();
+                    
+                    if (data.messages && data.messages.length > 0) {
+                      for (let i = 0; i < data.messages.length; i++) {
+                        const message = data.messages[i];
+                        this.processMessage(message);
+                      }
+                    }
+                      
+                      if (data.error) {
+                        this.trigger('error', new Error(data.error));
+                      }
+                      
+                      if (data.isConnected && !this.connected) {
+                        this.connected = true;
+                        this.trigger('connect');
+                      }
+                      
+                      if (!data.isConnected && this.connected) {
+                        this.connected = false;
+                        this.trigger('disconnect');
+                      }
+                      
+                      this.initialPolls++;
+                      if (this.initialPolls >= this.maxInitialPolls && !this.fullyConnected) {
+                        if (this.pollingInterval < 500) {
+                          if (this.pollInterval) {
+                            clearInterval(this.pollInterval);
+                          }
+                          this.pollingInterval = 500;
+                          this.pollInterval = setInterval(pollOnce, this.pollingInterval);
+                        }
+                      }
+                      
+                    } catch (error) {
+                      if (error.message && !error.message.includes('fetch')) {
+                        this.trigger('error', error);
+                      }
+                    }
+                  };
+                  
+                  pollOnce();
+                  
+                  if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                  }
+                  this.pollInterval = setInterval(pollOnce, this.pollingInterval);
+                },
+                
+                processMessage(message) {
+                  message = message.trim();
+                  
+                  if (message.startsWith('0')) {
+                  } else if (message.startsWith('2')) {
+                    if (this.sessionId && this.connected) {
+                      fetch(`${this.baseUrl}/api/game/send/${this.sessionId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: '3'
+                      }).catch(() => {});
+                    }
+                  } else if (message.startsWith('3')) {
+                  } else if (message.startsWith('42')) {
+                    try {
+                      let match = message.match(/^42\["([^"]+)",(.*)\]$/);
+                      if (match) {
+                        const eventName = match[1];
+                        let eventData;
+                        try {
+                          const jsonStr = match[2];
+                          if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
+                            eventData = JSON.parse(jsonStr);
+                          } else if (jsonStr.startsWith('"') && jsonStr.endsWith('"')) {
+                            eventData = JSON.parse(jsonStr);
+                          } else {
+                            eventData = jsonStr;
+                          }
+                        } catch (e) {
+                          eventData = match[2];
+                        }
+                        this.trigger(eventName, eventData);
+                      } else {
+                        match = message.match(/^42\["([^"]+)"\]$/);
+                        if (match) {
+                          const eventName = match[1];
+                          
+                          if (eventName === 'hello_server' && !this.fullyConnected) {
+                            this.reducePollingFrequency();
+                          }
+                          
+                          this.trigger(eventName, null);
+                        }
+                      }
+                    } catch (e) {
+                    }
+                  } else if (message.startsWith('40')) {
+                    this.connected = true;
+                    this.trigger('connect');
+                  } else if (message.startsWith('41')) {
+                    this.connected = false;
+                    this.trigger('disconnect', undefined);
+                  }
+                },
+                
+                on(event, handler) {
+                  if (!this.eventHandlers[event]) {
+                    this.eventHandlers[event] = [];
+                  }
+                  this.eventHandlers[event].push(handler);
+                },
+                
+                async emit(eventName, data) {
+                  if (!this.sessionId || !this.connected) {
+                    return;
+                  }
+                  
+                  let message;
+                  if (eventName === 'msg') {
+                    message = `42["msg",${JSON.stringify(data)}]`;
+                  } else {
+                    if (typeof data === 'string') {
+                      message = `42["${eventName}","${data.replace(/"/g, '\\"')}"]`;
+                    } else {
+                      message = `42["${eventName}",${JSON.stringify(data)}]`;
+                    }
+                  }
+                  
+                  try {
+                    const sendUrl = `${this.baseUrl}/api/game/send/${this.sessionId}`;
+                    const response = await fetch(sendUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'text/plain' },
+                      body: message
+                    });
+                    
+                    if (!response.ok) {
+                      const errorText = await response.text();
+                      throw new Error(`Send failed: ${response.status} - ${errorText}`);
+                    }
+                  } catch (error) {
+                    this.trigger('error', error);
+                  }
+                },
+                
+                trigger(event, data) {
+                  const handlers = this.eventHandlers[event] || [];
+                  handlers.forEach((handler, index) => {
+                    try {
+                      handler(data);
+                    } catch (e) {
+                    }
+                  });
+                },
+                
+                close() {
+                  this.connected = false;
+                  if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                  }
+                  
+                  if (this.sessionId) {
+                    fetch(`${this.baseUrl}/api/game/disconnect/${this.sessionId}`, {
+                      method: 'DELETE'
+                    }).catch(() => {});
+                    this.sessionId = null;
+                  }
+                  
+                  this.trigger('disconnect');
+                }
+            };
+            
+              this.socket = fetchSocket;
+              
+              fetchSocket.connect().catch(err => {
+                this.pushSteps("Failed to connect to the game");
+                this.parentPostMessage({start_cloud_game:!1});
+              });
+              
+              setTimeout(() => {
+                this.socketBind();
+              }, 50);
+            };
+            
+            if (window.App.connectSocket) {
+              window.App.connectSocket = window.App.$options.methods.connectSocket;
+            }
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkAndOverride);
+          }
+        }, 100);
+      })();
+    </script>
+    <script>
+      (function() {
+        const checkApp = setInterval(() => {
+          if (window.App && window.App.$data) {
+            clearInterval(checkApp);
+            
+            window.App.testButton = function() {
+              if (!this.isAstraEducationDomain) return;
+              
+              Swal.fire({
+                theme: "material-ui-dark",
+                title: "Credits for astra",
+                html: `
+                  <div style="text-align: left; padding: 10px;">
+                    <p>DragonX - Owner, Creator</p>
+                    <p>Domain - ! ! ! Veteraning</p>
+                    <p>Cloudmoon - the site</p>
+                  </div>
+                `,
+                showConfirmButton: true,
+                confirmButtonText: "Close",
+                confirmButtonColor: "#667eea"
+              });
+            };
+          }
+        }, 100);
+        
+        setTimeout(() => clearInterval(checkApp), 5000);
+      })();
+    </script>
+    <script>
+      (function() {
+        let isTabVisible = !document.hidden;
+        let originalGameLoop = null;
+        let originalGetStats = null;
+        let originalReportStates = null;
+        let originalReportCoordinator = null;
+        let statsTimeout = null;
+        let statesTimeout = null;
+        let coordinatorTimeout = null;
+        let videoElement = null;
+        let audioElement = null;
+        
+        const checkApp = setInterval(() => {
+          if (window.App && window.App.gameLoop) {
+            clearInterval(checkApp);
+            
+            originalGameLoop = window.App.gameLoop;
+            originalGetStats = window.App.getStats;
+            originalReportStates = window.App.reportStates;
+            originalReportCoordinator = window.App.reportCoordinator;
+            videoElement = document.getElementById('remote-video');
+            audioElement = document.getElementById('remote-audio');
+            
+            window.App.gameLoop = function() {
+              if (!isTabVisible) {
+                requestAnimationFrame(() => this.gameLoop());
+                return;
+              }
+              
+              originalGameLoop.call(this);
+            };
+            
+            window.App.getStats = function() {
+              if (!isTabVisible) {
+                if (statsTimeout) clearTimeout(statsTimeout);
+                statsTimeout = setTimeout(() => this.getStats(), 5000);
+                return;
+              }
+              
+              originalGetStats.call(this);
+            };
+            
+            window.App.reportStates = function() {
+              if (!isTabVisible) {
+                if (statesTimeout) clearTimeout(statesTimeout);
+                const interval = this.initParams?.statInterval || 3000;
+                statesTimeout = setTimeout(() => this.reportStates(), interval * 3);
+                return;
+              }
+              
+              originalReportStates.call(this);
+            };
+            
+            window.App.reportCoordinator = function() {
+              if (!isTabVisible) {
+                if (coordinatorTimeout) clearTimeout(coordinatorTimeout);
+                coordinatorTimeout = setTimeout(() => this.reportCoordinator(), 10000);
+                return;
+              }
+              
+              originalReportCoordinator.call(this);
+            };
+            
+            document.addEventListener('visibilitychange', () => {
+              const wasVisible = isTabVisible;
+              isTabVisible = !document.hidden;
+              
+              if (videoElement && audioElement) {
+                if (isTabVisible) {
+                  if (videoElement.paused) {
+                    videoElement.play().catch(() => {});
+                  }
+                  if (audioElement.paused) {
+                    audioElement.play().catch(() => {});
+                  }
+                  
+                  if (window.App && window.App.getStats) {
+                    window.App.getStats();
+                  }
+                  if (window.App && window.App.reportStates) {
+                    window.App.reportStates();
+                  }
+                  if (window.App && window.App.reportCoordinator) {
+                    window.App.reportCoordinator();
+                  }
+                } else {
+                  videoElement.pause();
+                  audioElement.pause();
+                  
+                  if (statsTimeout) {
+                    clearTimeout(statsTimeout);
+                    statsTimeout = null;
+                  }
+                  if (statesTimeout) {
+                    clearTimeout(statesTimeout);
+                    statesTimeout = null;
+                  }
+                  if (coordinatorTimeout) {
+                    clearTimeout(coordinatorTimeout);
+                    coordinatorTimeout = null;
+                  }
+                }
+              }
+            });
+            
+            window.addEventListener('blur', () => {
+              if (videoElement && isTabVisible) videoElement.pause();
+              if (audioElement && isTabVisible) audioElement.pause();
+            });
+            
+            window.addEventListener('focus', () => {
+              if (videoElement && isTabVisible) {
+                videoElement.play().catch(() => {});
+              }
+              if (audioElement && isTabVisible) {
+                audioElement.play().catch(() => {});
+              }
+            });
+          }
+        }, 100);
+        
+        setTimeout(() => clearInterval(checkApp), 5000);
+      })();
+    </script>
+    <script>
+      (function() {
+        const useWebSocket = localStorage.getItem('astra_use_websocket') !== 'false';
+        if (useWebSocket) {
+          return;
+        }
+        
+        if (window.App && window.App.connectSocket) {
+          const original = window.App.connectSocket;
+          window.App.connectSocket = function() {
+            if (window.App.$options && window.App.$options.methods && window.App.$options.methods.connectSocket) {
+              return window.App.$options.methods.connectSocket.call(this);
+            }
+            return original.call(this);
+          };
+        }
+        
+        const checkApp = setInterval(() => {
+          if (window.App && window.App.$options && window.App.$options.methods) {
+            clearInterval(checkApp);
+            
+            const originalConnectSocket = window.App.$options.methods.connectSocket;
+            if (!originalConnectSocket) {
+              return;
+            }
+            
+            window.__fetchBasedConnectSocket = function() {
+              this.listenKeyup();
+              this.listenKeydown();
+              
+              let socketUrl = this.getSocketUrl();
+              if (gtag) gtag("event","socket_connecting");
+              
+              if ("https://0.0.0.0" === socketUrl || null == socketUrl || "" === socketUrl) {
+                return this.pushSteps("Failed to connect to the game"), void this.parentPostMessage({start_cloud_game:!1});
+              }
+              
+              let coordinatorUrl = null;
+              let screenRes = null;
+              let game = null;
+              let userId = null;
+              let instanceId = null;
+              
+              try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const coorUrlParam = urlParams.get('coor_url');
+                if (coorUrlParam) {
+                  coordinatorUrl = decodeURIComponent(coorUrlParam);
+                }
+                
+                screenRes = `${this.screenWidth}x${this.screenHeight}`;
+                game = this.game || urlParams.get('game');
+                userId = this.userId || urlParams.get('userid');
+                instanceId = this.androidInstanceId || urlParams.get('android_instance_id');
+              } catch (e) {
+              }
+              
+              if (!coordinatorUrl || !screenRes || !game || !userId) {
+                return this.pushSteps("Failed to connect to the game"), void this.parentPostMessage({start_cloud_game:!1});
+              }
+              
+              const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+              const host = window.location.host;
+              const serverBaseUrl = `${protocol}//${host}`;
+              
+              const fetchSocket = {
+                sessionId: null,
+                connected: false,
+                eventHandlers: {},
+                pollInterval: null,
+                baseUrl: serverBaseUrl,
+                pollingInterval: 50,
+                fullyConnected: false,
+                initialPolls: 0,
+                maxInitialPolls: 20,
+                
+                reducePollingFrequency() {
+                  if (this.fullyConnected) return;
+                  this.fullyConnected = true;
+                  if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                  }
+                  this.pollingInterval = 500;
+                  let lastMessageTime = Date.now();
+                  let consecutiveEmptyPolls = 0;
+                  
+                  const pollOnce = async () => {
+                    if (!this.sessionId) return;
+                    try {
+                      const pollUrl = `${this.baseUrl}/api/game/poll/${this.sessionId}`;
+                      const response = await fetch(pollUrl, {
+                        method: 'GET',
+                        cache: 'no-cache',
+                        headers: { 'Cache-Control': 'no-cache' }
+                      });
+                      if (!response.ok) {
+                        if (response.status === 404) {
+                          this.connected = false;
+                          this.trigger('disconnect', undefined);
+                          return;
+                        }
+                        throw new Error(`Poll failed: ${response.status}`);
+                      }
+                      const data = await response.json();
+                      if (data.messages && data.messages.length > 0) {
+                        consecutiveEmptyPolls = 0;
+                        lastMessageTime = Date.now();
+                        for (let i = 0; i < data.messages.length; i++) {
+                          this.processMessage(data.messages[i]);
+                        }
+                      } else {
+                        consecutiveEmptyPolls++;
+                        const timeSinceLastMessage = Date.now() - lastMessageTime;
+                        
+                        if (timeSinceLastMessage > 30000 && this.pollingInterval < 2000) {
+                          if (this.pollInterval) {
+                            clearInterval(this.pollInterval);
+                          }
+                          this.pollingInterval = 2000;
+                          this.pollInterval = setInterval(pollOnce, this.pollingInterval);
+                        }
+                      }
+                    } catch (error) {
+                    }
+                  };
+                  pollOnce(); // Poll immediately
+                  this.pollInterval = setInterval(pollOnce, this.pollingInterval);
+                },
+                
+                async connect() {
+                  try {
+                    const connectUrl = `${this.baseUrl}/api/game/connect`;
+                    const connectData = {
+                      coordinatorUrl: coordinatorUrl,
+                      screenRes: screenRes,
+                      game: game,
+                      userId: userId,
+                      slotId: `${userId}@${game}`,
+                      instanceId: instanceId || '',
+                      userAgent: navigator.userAgent
+                    };
+                    
+                    const response = await fetch(connectUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(connectData)
+                    });
+                    
+                    if (!response.ok) {
+                      const errorText = await response.text();
+                      throw new Error(`Connection failed: ${response.status} - ${errorText}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.sessionId = data.sessionId;
+                    this.connected = true;
+                    
+                    this.trigger('connect');
+                    this.startPolling();
+                    
+                  } catch (error) {
+                    this.trigger('error', error);
+                  }
+                },
+                
+                startPolling() {
+                  if (this.pollInterval) return;
+                  
+                  const pollOnce = async () => {
+                    if (!this.sessionId) return;
+                    
+                    try {
+                      const pollUrl = `${this.baseUrl}/api/game/poll/${this.sessionId}`;
+                      const response = await fetch(pollUrl, {
+                        method: 'GET',
+                        cache: 'no-cache',
+                        headers: { 'Cache-Control': 'no-cache' }
+                      });
+                      if (!response.ok) {
+                        if (response.status === 404) {
+                          this.connected = false;
+                          this.trigger('disconnect');
+                          return;
+                        }
+                        throw new Error(`Poll failed: ${response.status}`);
+                      }
+                      
+                      const data = await response.json();
+                      
+                      if (data.messages && data.messages.length > 0) {
+                        for (let i = 0; i < data.messages.length; i++) {
+                          const message = data.messages[i];
+                          this.processMessage(message);
+                        }
+                      }
+                      
+                      if (data.error) {
+                        this.trigger('error', new Error(data.error));
+                      }
+                      
+                      if (data.isConnected && !this.connected) {
+                        this.connected = true;
+                        this.trigger('connect');
+                      }
+                      
+                      if (!data.isConnected && this.connected) {
+                        this.connected = false;
+                        this.trigger('disconnect');
+                      }
+                      
+                      this.initialPolls++;
+                      if (this.initialPolls >= this.maxInitialPolls && !this.fullyConnected) {
+                        if (this.pollingInterval < 500) {
+                          if (this.pollInterval) {
+                            clearInterval(this.pollInterval);
+                          }
+                          this.pollingInterval = 500;
+                          this.pollInterval = setInterval(pollOnce, this.pollingInterval);
+                        }
+                      }
+                      
+                    } catch (error) {
+                      if (error.message && !error.message.includes('fetch')) {
+                        this.trigger('error', error);
+                      }
+                    }
+                  };
+                  
+                  pollOnce();
+                  this.pollInterval = setInterval(pollOnce, this.pollingInterval);
+                },
+                
+                processMessage(message) {
+                  message = message.trim();
+                  
+                  if (message.startsWith('0')) {
+                  } else if (message.startsWith('2')) {
+                    if (this.sessionId && this.connected) {
+                      fetch(`${this.baseUrl}/api/game/send/${this.sessionId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: '3'
+                      }).catch(() => {});
+                    }
+                  } else if (message.startsWith('3')) {
+                  } else if (message.startsWith('42')) {
+                    try {
+                      let match = message.match(/^42\["([^"]+)",(.*)\]$/);
+                      if (match) {
+                        const eventName = match[1];
+                        let eventData;
+                        try {
+                          const jsonStr = match[2];
+                          if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
+                            eventData = JSON.parse(jsonStr);
+                          } else if (jsonStr.startsWith('"') && jsonStr.endsWith('"')) {
+                            eventData = JSON.parse(jsonStr);
+                          } else {
+                            eventData = jsonStr;
+                          }
+                        } catch (e) {
+                          eventData = match[2];
+                        }
+                        this.trigger(eventName, eventData);
+                      } else {
+                        match = message.match(/^42\["([^"]+)"\]$/);
+                        if (match) {
+                          const eventName = match[1];
+                          
+                          if (eventName === 'hello_server' && !this.fullyConnected) {
+                            this.reducePollingFrequency();
+                          }
+                          
+                          this.trigger(eventName, null);
+                        }
+                      }
+                    } catch (e) {
+                    }
+                  } else if (message.startsWith('40')) {
+                    this.connected = true;
+                    this.trigger('connect');
+                  } else if (message.startsWith('41')) {
+                    this.connected = false;
+                    this.trigger('disconnect', undefined);
+                  }
+                },
+                
+                on(event, handler) {
+                  if (!this.eventHandlers[event]) {
+                    this.eventHandlers[event] = [];
+                  }
+                  this.eventHandlers[event].push(handler);
+                },
+                
+                async emit(eventName, data) {
+                  if (!this.sessionId || !this.connected) {
+                    return;
+                  }
+                  
+                  let message;
+                  if (eventName === 'msg') {
+                    message = `42["msg",${JSON.stringify(data)}]`;
+                  } else {
+                    if (typeof data === 'string') {
+                      message = `42["${eventName}","${data.replace(/"/g, '\\"')}"]`;
+                    } else {
+                      message = `42["${eventName}",${JSON.stringify(data)}]`;
+                    }
+                  }
+                  
+                  try {
+                    const sendUrl = `${this.baseUrl}/api/game/send/${this.sessionId}`;
+                    const response = await fetch(sendUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'text/plain' },
+                      body: message
+                    });
+                    
+                    if (!response.ok) {
+                      const errorText = await response.text();
+                      throw new Error(`Send failed: ${response.status} - ${errorText}`);
+                    }
+                  } catch (error) {
+                    this.trigger('error', error);
+                  }
+                },
+                
+                trigger(event, data) {
+                  const handlers = this.eventHandlers[event] || [];
+                  handlers.forEach((handler, index) => {
+                    try {
+                      handler(data);
+                    } catch (e) {
+                    }
+                  });
+                },
+                
+                close() {
+                  this.connected = false;
+                  if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                  }
+                  
+                  if (this.sessionId) {
+                    fetch(`${this.baseUrl}/api/game/disconnect/${this.sessionId}`, {
+                      method: 'DELETE'
+                    }).catch(() => {});
+                    this.sessionId = null;
+                  }
+                  
+                  this.trigger('disconnect');
+                }
+              };
+              
+              this.socket = fetchSocket;
+              
+              this.socketBind();
+              
+              fetchSocket.connect().catch(err => {
+                this.pushSteps("Failed to connect to the game");
+                this.parentPostMessage({start_cloud_game:!1});
+              });
+            };
+            
+            window.__fetchBasedConnectSocket = window.App.$options.methods.connectSocket;
+            
+            const originalMounted = window.App.$options.mounted;
+            if (originalMounted) {
+              window.App.$options.mounted = function() {
+                if (originalMounted) {
+                  originalMounted.call(this);
+                }
+                setTimeout(() => {
+                  if (this.connectStreaming && !this.socket) {
+                    this.connectStreaming();
+                  }
+                }, 500);
+              };
+            }
+            
+            if (window.App.$options.methods.connectStreaming) {
+              const originalConnectStreaming = window.App.$options.methods.connectStreaming;
+              window.App.$options.methods.connectStreaming = function() {
+                return originalConnectStreaming.call(this);
+              };
+            }
+            
+            if (window.App._isMounted) {
+              setTimeout(() => {
+                if (window.App.connectStreaming && !window.App.socket) {
+                  window.App.connectStreaming();
+                }
+              }, 500);
+            }
+          }
+        }, 100);
+        
+        setTimeout(() => {
+          clearInterval(checkApp);
+        }, 5000);
+      })();
+    </script>
+    <script>
+      (function() {
+        function removeSwal2Popup() {
+          const popup = document.querySelector('.swal2-container.swal2-center.swal2-backdrop-show');
+          if (popup) {
+            if (typeof Swal !== 'undefined' && Swal.close) {
+              Swal.close();
+            } else {
+              popup.remove();
+            }
+            const backdrop = document.querySelector('.swal2-backdrop-show');
+            if (backdrop) backdrop.remove();
+          }
+        }
+        
+        removeSwal2Popup();
+        
+        const observer = new MutationObserver(function(mutations) {
+          removeSwal2Popup();
+        });
+        
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+        
+        setInterval(removeSwal2Popup, 100);
+      })();
+    </script>
+    <script>
+      if (typeof VANTA !== 'undefined' && VANTA.FOG) {
+        VANTA.FOG({
+          el: "#vanta",
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200.00,
+          minWidth: 200.00,
+          highlightColor: 0x0070f3,
+          midtoneColor: 0x0051cc,
+          lowlightColor: 0x003399,
+          baseColor: 0x000000,
+          blurFactor: 0.90,
+          speed: 5.00,
+          zoom: 0.40
+        });
+      }
+    </script>
+    <script>
+      (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameName = urlParams.get('game');
+        const isRoblox = gameName === 'com.roblox.client';
+        
+        if (!isRoblox) return;
+        
+        let backButtonSent = false;
+        
+        function sendBackButton() {
+          if (backButtonSent) return;
+          if (window.App && window.App.sendDataChannelMessage) {
+            window.App.sendDataChannelMessage('keycode>4');
+            backButtonSent = true;
+          }
+        }
+        
+        const checkAppReady = setInterval(() => {
+          if (window.App && window.App.$refs && window.App.$refs.remoteVideo) {
+            clearInterval(checkAppReady);
+            
+            const video = window.App.$refs.remoteVideo;
+            
+            const onVideoPlay = () => {
+              if (!backButtonSent && video.readyState >= 2) {
+                setTimeout(sendBackButton, 500);
+                video.removeEventListener('playing', onVideoPlay);
+              }
+            };
+            
+            video.addEventListener('playing', onVideoPlay);
+            
+            if (video.readyState >= 2 && !video.paused) {
+              setTimeout(sendBackButton, 500);
+            }
+          }
+        }, 100);
+        
+        const checkHandleDCMessage = setInterval(() => {
+          if (window.App && window.App.handleDCMessage) {
+            clearInterval(checkHandleDCMessage);
+            
+            const originalHandleDCMessage = window.App.handleDCMessage;
+            window.App.handleDCMessage = function(msg) {
+              originalHandleDCMessage.call(this, msg);
+              
+              if (typeof msg === 'string') {
+                const parts = msg.split('>');
+                if (parts[0] === 'rotation') {
+                  setTimeout(sendBackButton, 500);
+                }
+              }
+            };
+          }
+        }, 100);
+        
+        const checkStreamingOn = setInterval(() => {
+          if (window.App && window.App.streamingOn === true) {
+            clearInterval(checkStreamingOn);
+            setTimeout(sendBackButton, 500);
+          }
+        }, 100);
+        
+        setTimeout(() => {
+          clearInterval(checkAppReady);
+          clearInterval(checkHandleDCMessage);
+          clearInterval(checkStreamingOn);
+        }, 30000);
+      })();
+    </script>
+    <script>
+      //some alerts
+      (function() {
+        let alertsShown = false;
+        
+        function showAlerts() {
+          if (alertsShown) return;
+          alertsShown = true;
+        //  alert('Bypass by astra');
+       //    alert('Join: dsc.gg/astra-cloud');
+        }
+        
+        const checkVideoPlay = setInterval(() => {
+          const video = document.getElementById('remote-video');
+          if (video && video.readyState >= 2 && !video.paused) {
+            clearInterval(checkVideoPlay);
+            setTimeout(showAlerts, 1000);
+          }
+        }, 100);
+        
+        const checkStreamingOn = setInterval(() => {
+          if (window.App && window.App.streamingOn === true) {
+            clearInterval(checkStreamingOn);
+            setTimeout(showAlerts, 1000);
+          }
+        }, 100);
+        
+        const video = document.getElementById('remote-video');
+        if (video) {
+          video.addEventListener('playing', () => {
+            setTimeout(showAlerts, 1000);
+          }, { once: true });
+        }
+        
+        setTimeout(() => {
+          clearInterval(checkVideoPlay);
+          clearInterval(checkStreamingOn);
+        }, 60000);
+      })();
+
+      (function preventScreenSleep() {
+        let wakeLock = null;
+        let noSleepInterval = null;
+        let videoKeepAliveInterval = null;
+
+        async function requestWakeLock() {
+          if ('wakeLock' in navigator) {
+            try {
+              wakeLock = await navigator.wakeLock.request('screen');
+              console.log('Wake Lock acquired');
+              
+              wakeLock.addEventListener('release', () => {
+                console.log('Wake Lock released');
+                setTimeout(requestWakeLock, 1000);
+              });
+            } catch (err) {
+              console.warn('Wake Lock error:', err);
+            }
+          }
+        }
+
+        function keepPageActive() {
+          if (document.hidden) {
+            return;
+          }
+          
+          const event = new Event('mousemove', { bubbles: true });
+          document.dispatchEvent(event);
+        }
+
+        function keepVideoActive() {
+          const video = document.getElementById('remote-video');
+          if (video) {
+            if (video.paused && video.readyState >= 2) {
+              video.play().catch(err => {
+                console.log('oh no:', err);
+              });
+            }
+            
+            if (video.style.opacity !== '1') {
+              video.style.opacity = '1';
+            }
+          }
+        }
+
+        function initNoSleep() {
+          requestWakeLock();
+          
+          noSleepInterval = setInterval(keepPageActive, 30000);
+          
+          videoKeepAliveInterval = setInterval(keepVideoActive, 10000);
+          
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && wakeLock === null) {
+              requestWakeLock();
+            }
+          });
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initNoSleep);
+        } else {
+          initNoSleep();
+        }
+
+        window.addEventListener('beforeunload', () => {
+          if (wakeLock) {
+            wakeLock.release().catch(() => {});
+          }
+          if (noSleepInterval) {
+            clearInterval(noSleepInterval);
+          }
+          if (videoKeepAliveInterval) {
+            clearInterval(videoKeepAliveInterval);
+          }
+        });
+      })();
+
+      window.addEventListener('error', (event) => {
+        const errorMsg = event.message || '';
+        const errorSource = event.filename || '';
+        
+        if (errorMsg.includes('getStats') && errorMsg.includes('null')) {
+          event.preventDefault();
+          console.log('Suppressed getStats null error');
+          return true;
+        }
+        
+        if (errorMsg.includes('Data Channel') || errorMsg.includes('RTCErrorEvent')) {
+          console.log('Data Channel error (handled):', errorMsg);
+          event.preventDefault();
+          return true;
+        }
+      }, true);
+
+      (function preventConnectionDrop() {
+        let connectionMonitorInterval = null;
+        let keepAliveInterval = null;
+
+        function monitorConnection() {
+          try {
+            if (window.App && window.App.peerConnection) {
+              const pc = window.App.peerConnection;
+              
+              if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+                console.warn('Connection state:', pc.connectionState);
+                // Try to reconnect if possible
+                if (window.App.reconnect && typeof window.App.reconnect === 'function') {
+                  console.log('Attempting to reconnect...');
+                  window.App.reconnect();
+                }
+              }
+
+              if (pc.dataChannels) {
+                pc.dataChannels.forEach((channel, index) => {
+                  if (channel && channel.readyState === 'closing' || channel.readyState === 'closed') {
+                    console.warn(`Data channel ${index} is ${channel.readyState}`);
+                  }
+                });
+              }
+            }
+
+            const video = document.getElementById('remote-video');
+            if (video && video.srcObject) {
+              const stream = video.srcObject;
+              if (stream && stream.getTracks) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => {
+                  if (track.readyState === 'ended') {
+                    console.warn('speed please');
+                    video.play().catch(err => console.log('Video play error:', err));
+                  }
+                });
+              }
+            }
+          } catch (err) {
+            console.log('Connection monitor error (non-critical):', err);
+          }
+        }
+
+        function sendKeepAlive() {
+          try {
+            if (window.App && window.App.peerConnection) {
+              const pc = window.App.peerConnection;
+              if (pc.connectionState) {
+              }
+            }
+          } catch (err) {
+          }
+        }
+
+        function wrapGetStats() {
+          if (window.App && window.App.getStats && typeof window.App.getStats === 'function') {
+            const originalGetStats = window.App.getStats;
+            window.App.getStats = function() {
+              try {
+                if (this.peerConnection && this.peerConnection.getStats) {
+                  return originalGetStats.apply(this, arguments);
+                } else {
+                  console.log('PeerConnection not available for getStats');
+                  return Promise.resolve(null);
+                }
+              } catch (err) {
+                console.log('getStats error (handled):', err);
+                return Promise.resolve(null);
+              }
+            };
+          }
+        }
+
+        function setupDataChannelErrorHandlers() {
+          if (window.App && window.App.peerConnection) {
+            const pc = window.App.peerConnection;
+            
+            pc.addEventListener('connectionstatechange', () => {
+              console.log('Connection state changed:', pc.connectionState);
+              if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+                monitorConnection();
+              }
+            });
+
+            pc.addEventListener('iceconnectionstatechange', () => {
+              console.log('ICE connection state:', pc.iceConnectionState);
+            });
+
+            if (pc.dataChannels) {
+              pc.dataChannels.forEach((channel, index) => {
+                if (channel) {
+                  channel.addEventListener('error', (event) => {
+                    console.log(`Data channel ${index} error (handled):`, event);
+                  });
+                  
+                  channel.addEventListener('close', () => {
+                    console.log(`Data channel ${index} closed`);
+                  });
+                }
+              });
+            }
+          }
+        }
+
+        function initConnectionMonitoring() {
+          wrapGetStats();
+          
+          connectionMonitorInterval = setInterval(monitorConnection, 5000);
+          
+          keepAliveInterval = setInterval(sendKeepAlive, 30000);
+          
+          const checkAppReady = setInterval(() => {
+            if (window.App && window.App.peerConnection) {
+              clearInterval(checkAppReady);
+              setupDataChannelErrorHandlers();
+            }
+          }, 1000);
+          
+          setTimeout(() => {
+            clearInterval(checkAppReady);
+          }, 30000);
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initConnectionMonitoring);
+        } else {
+          initConnectionMonitoring();
+        }
+
+       window.addEventListener('beforeunload', () => {
+          if (connectionMonitorInterval) {
+            clearInterval(connectionMonitorInterval);
+          }
+          if (keepAliveInterval) {
+            clearInterval(keepAliveInterval);
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
